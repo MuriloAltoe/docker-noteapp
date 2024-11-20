@@ -3,46 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notas</title>
-    <script>
-        async function criarNota() {
-            const titulo = document.getElementById('titulo').value;
-            const conteudo = document.getElementById('conteudo').value;
+    <title>Task Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #task-form {
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .actions {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Task Manager</h1>
 
-            const response = await fetch('/api/nota', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ titulo, conteudo })
+    <form id="task-form">
+        <input type="text" id="title" placeholder="Title" required />
+        <input type="text" id="description" placeholder="Description" />
+        <button type="submit">Add Task</button>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="task-list">
+        </tbody>
+    </table>
+
+    <script>
+        const apiBaseUrl = "http://localhost:5000/tasks";
+
+        async function fetchTasks() {
+            const response = await fetch(apiBaseUrl);
+            const tasks = await response.json();
+            renderTasks(tasks);
+        }
+
+        async function addTask(event) {
+            event.preventDefault();
+            const title = document.getElementById("title").value;
+            const description = document.getElementById("description").value;
+
+            const response = await fetch(apiBaseUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ title, description }),
             });
 
             if (response.ok) {
-                window.location.reload();
-            } else {
-                alert('Erro ao criar a nota');
+                document.getElementById("task-form").reset();
+                fetchTasks();
             }
         }
+
+        async function updateTask(id, completed) {
+            const response = await fetch(`${apiBaseUrl}/${id}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ completed }),
+            });
+
+            if (response.ok) {
+                fetchTasks();
+            }
+        }
+
+        async function deleteTask(id) {
+            const response = await fetch(`${apiBaseUrl}/${id}`, {
+                method: "DELETE",
+            });
+
+            if (response.ok) {
+                fetchTasks();
+            }
+        }
+
+        function renderTasks(tasks) {
+            const taskList = document.getElementById("task-list");
+            taskList.innerHTML = "";
+
+            tasks.forEach(task => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${task[0]}</td>
+                    <td>${task[1]}</td>
+                    <td>${task[2]}</td>
+                    <td class="actions">
+                        <button onclick="deleteTask(${task[0]})">Delete</button>
+                    </td>
+                `;
+                taskList.appendChild(row);
+            });
+        }
+
+        document.getElementById("task-form").addEventListener("submit", addTask);
+
+        fetchTasks();
     </script>
-</head>
-<body>
-    <h1>Notas</h1>
-
-    <form onsubmit="event.preventDefault(); criarNota();">
-        <label for="titulo">Título:</label>
-        <input type="text" id="titulo" name="titulo" required>
-        <br><br>
-        <label for="conteudo">Conteúdo:</label>
-        <textarea id="conteudo" name="conteudo" required></textarea>
-        <br><br>
-        <button type="submit">Criar Nota</button>
-    </form>
-
-    <h2>Lista de Notas:</h2>
-    <ul>
-        {% for nota in notas %}
-            <li>
-                <strong>{{ nota.titulo }}:</strong> {{ nota.conteudo }}
-            </li>
-        {% endfor %}
-    </ul>
 </body>
 </html>
